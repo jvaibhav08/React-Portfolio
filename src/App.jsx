@@ -23,7 +23,9 @@ const App = () => {
         <Experience />
         <Projects />
         <Additonal />
+        <div id="contact">
         <Contact />
+        </div>
       </div>
 
       {/* ✅ Floating WhatsApp Icon */}
