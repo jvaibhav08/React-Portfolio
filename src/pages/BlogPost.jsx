@@ -8,6 +8,12 @@ import { FaInstagram, FaWhatsapp, FaLinkedin } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
 import WhatsappButton from "../components/WhatsappButton";
 
+/* ▼ Added: build Sanity image URLs */
+import imageUrlBuilder from "@sanity/image-url";
+const builder = imageUrlBuilder(client);
+const urlFor = (source) => builder.image(source);
+/* ▲ Added */
+
 export default function BlogPost() {
   const { slug } = useParams();
   const [post, setPost] = useState(null);
@@ -17,6 +23,38 @@ export default function BlogPost() {
   const [commentName, setCommentName] = useState("");
   const [commentMessage, setCommentMessage] = useState("");
   const [submitted, setSubmitted] = useState(false);
+
+  /* ▼ Added: Portable Text components with an image renderer */
+  const components = {
+    types: {
+      image: ({ value }) => {
+        if (!value?.asset?._ref) return null;
+        const src = urlFor(value).width(1200).quality(80).url();
+        const alt = value?.alt || "";
+        return (
+          <figure className="my-6">
+            <img
+              src={src}
+              alt={alt}
+              className="w-full h-auto rounded"
+              loading="lazy"
+            />
+            {value?.heading && (
+              <figcaption className="mt-2 text-sm font-semibold">
+                {value.heading}
+              </figcaption>
+            )}
+            {value?.caption && (
+              <figcaption className="text-sm text-gray-400">
+                {value.caption}
+              </figcaption>
+            )}
+          </figure>
+        );
+      },
+    },
+  };
+  /* ▲ Added */
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -47,7 +85,7 @@ export default function BlogPost() {
 
       // ✅ Filter approved comments only
       if (data?.comments?.length) {
-        const approved = data.comments.filter(c => c.approved);
+        const approved = data.comments.filter((c) => c.approved);
         setComments(approved);
       }
 
@@ -82,13 +120,16 @@ export default function BlogPost() {
     console.log("🚀 Sending comment payload:", payload);
 
     try {
-      const res = await fetch("/.netlify/functions/addComment", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+      const res = await fetch(
+        "https://dapper-entremet-89f17a.netlify.app/.netlify/functions/addComment",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
       const data = await res.json();
       if (res.ok) {
@@ -202,7 +243,9 @@ export default function BlogPost() {
         )}
 
         <div className="prose prose-invert max-w-none">
-          <PortableText value={post.body} />
+          {/* ▼ Only change here: pass components so images render */}
+          <PortableText value={post.body} components={components} />
+          {/* ▲ */}
         </div>
 
         {relatedPosts.length > 0 && (
