@@ -151,12 +151,12 @@ const Technologies = () => {
     ];
 
     return (
-        <div className="border-b border-neutral-800 pb-24">
+        <div className="border-b border-neutral-800 py-10 sm:py-14">
             <motion.h2
                 whileInView={{ opacity: 1, y: 0 }}
                 initial={{ opacity: 0, y: -100 }}
                 transition={{ duration: 1.5 }}
-                className="my-20 text-center text-4xl"
+                className="mb-10 text-center text-3xl sm:mb-12 sm:text-4xl"
             >
                 Genres
             </motion.h2>
@@ -164,7 +164,7 @@ const Technologies = () => {
                 whileInView={{ opacity: 1, x: 0 }}
                 initial={{ opacity: 0, x: -100 }}
                 transition={{ duration: 1.5 }}
-                className="flex flex-wrap items-center justify-center gap-6"
+                className="flex flex-wrap items-center justify-center gap-4 sm:gap-6"
             >
                 {icons.map((tech) => (
                     <motion.div
@@ -183,7 +183,7 @@ const Technologies = () => {
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.8 }}
                                 transition={{ duration: 0.3 }}
-                                className="absolute top-16 left-1/2 w-52 -translate-x-1/2 rounded-lg bg-neutral-900 p-4 text-center text-sm text-white shadow-lg lg:w-64 z-20"
+                                className="absolute left-1/2 top-16 z-20 w-56 -translate-x-1/2 rounded-lg bg-neutral-900 p-4 text-center text-sm leading-6 text-white shadow-lg lg:w-64"
                             >
                                 
                                 {tech.explanation}

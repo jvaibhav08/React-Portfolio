@@ -29,14 +29,14 @@ const Navbar = () => {
   }, [open]);
 
   return (
-    <nav className="mb-20 flex items-center justify-between py-6">
+    <nav className="mb-10 flex items-center justify-between py-5 sm:mb-12 sm:py-6">
       {/* ✅ Logo */}
       <div className="flex flex-shrink-0 items-center">
-        <img className="mx-2 w-10" src={logo} alt="logo" />
+        <img className="mx-1 w-10 sm:w-11" src={logo} alt="logo" />
       </div>
 
       {/* ✅ Menu Links (desktop/tablet large and up) */}
-      <div className="hidden lg:flex items-center gap-8 text-lg font-medium">
+      <div className="hidden items-center gap-7 text-base font-medium lg:flex">
         <Link to="/" className="hover:text-cyan-400 transition">
           Home
         </Link>
@@ -49,7 +49,7 @@ const Navbar = () => {
       </div>
 
       {/* ✅ Social Icons (desktop/tablet large and up) */}
-      <div className="hidden lg:flex m-8 items-center justify-center gap-4 text-2xl">
+      <div className="m-4 hidden items-center justify-center gap-4 text-xl lg:flex">
         <a
           href="https://www.linkedin.com/in/vishwas-jha-a13472149/"
           target="_blank"
@@ -108,7 +108,7 @@ const Navbar = () => {
       >
         <div ref={panelRef} className="px-6 py-4">
           {/* Re-using your exact links & classes */}
-          <div className="flex flex-col gap-4 text-lg font-medium">
+          <div className="flex flex-col gap-4 text-base font-medium sm:text-lg">
             <Link
               to="/"
               className="hover:text-cyan-400 transition"

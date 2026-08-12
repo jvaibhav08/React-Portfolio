@@ -133,12 +133,12 @@ export default function BlogPost() {
     block: {
       h2: ({ children, value }) => <h2 id={headingId(value)} className="mt-10 scroll-mt-24 text-2xl font-semibold leading-tight text-white sm:text-3xl">{children}</h2>,
       h3: ({ children, value }) => <h3 id={headingId(value)} className="mt-8 scroll-mt-24 text-xl font-semibold text-white sm:text-2xl">{children}</h3>,
-      normal: ({ children }) => <p className="my-5 text-base leading-8 text-gray-300 sm:text-lg">{children}</p>,
-      blockquote: ({ children }) => <blockquote className="my-7 border-l-2 border-cyan-600 pl-5 text-lg italic leading-8 text-gray-300">{children}</blockquote>,
+      normal: ({ children }) => <p className="my-5 text-[17px] leading-8 text-gray-300 sm:text-lg">{children}</p>,
+      blockquote: ({ children }) => <blockquote className="my-7 border-l-2 border-cyan-600 pl-5 text-[17px] italic leading-8 text-gray-300 sm:text-lg">{children}</blockquote>,
     },
     list: {
-      bullet: ({ children }) => <ul className="my-5 list-disc space-y-2 pl-6 text-gray-300">{children}</ul>,
-      number: ({ children }) => <ol className="my-5 list-decimal space-y-2 pl-6 text-gray-300">{children}</ol>,
+      bullet: ({ children }) => <ul className="my-5 list-disc space-y-2 pl-6 text-[17px] leading-8 text-gray-300 sm:text-lg">{children}</ul>,
+      number: ({ children }) => <ol className="my-5 list-decimal space-y-2 pl-6 text-[17px] leading-8 text-gray-300 sm:text-lg">{children}</ol>,
     },
     marks: {
       link: ({ children, value }) => <a href={value?.href} className="text-cyan-300 underline underline-offset-4 hover:text-cyan-200">{children}</a>,
@@ -163,16 +163,16 @@ export default function BlogPost() {
   return (
     <div className="flex min-h-screen flex-col bg-neutral-900 text-neutral-200">
       <div className="fixed left-0 top-0 z-50 h-0.5 w-full bg-neutral-800" aria-hidden="true"><div className="h-full bg-cyan-500 transition-[width] duration-100" style={{ width: `${progress}%` }} /></div>
-      <div className="container mx-auto w-full px-8"><Navbar /></div>
-      <main className="mx-auto w-full max-w-7xl flex-grow px-4 pb-16 sm:px-6 lg:px-8">
-        <header className="mx-auto max-w-4xl">
-          <div className="mb-5 flex flex-wrap items-center gap-2 text-sm text-gray-400"><Link to="/blog" className="hover:text-cyan-300">Blog</Link><span>/</span>{categories.map((category) => <span key={category._id} className="rounded-full bg-cyan-950/60 px-2 py-0.5 text-cyan-200">{category.title}</span>)}</div>
-          <h1 className="max-w-4xl text-3xl font-bold leading-tight text-white sm:text-5xl">{post.title}</h1>
-          <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-gray-400"><span>Written by: <span className="text-gray-200">{post.author?.name || "Unknown author"}</span></span><span>Published: {formatDate(post.publishedAt)}</span><span>{readingTime} min read</span></div>
+      <div className="mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8"><Navbar /></div>
+      <main className="mx-auto w-full max-w-[84rem] flex-grow px-5 pb-14 sm:px-6 sm:pb-16 lg:px-8">
+        <header className="mx-auto max-w-6xl">
+          <div className="mb-5 flex flex-wrap items-center gap-2 text-[15px] text-gray-400 sm:text-base"><Link to="/blog" className="hover:text-cyan-300">Blog</Link><span>/</span>{categories.map((category) => <span key={category._id} className="rounded-full bg-cyan-950/60 px-2 py-0.5 text-cyan-200">{category.title}</span>)}</div>
+          <h1 className="max-w-5xl text-3xl font-bold leading-tight text-white sm:text-5xl">{post.title}</h1>
+          <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-[15px] text-gray-400 sm:text-base"><span>Written by: <span className="text-gray-200">{post.author?.name || "Unknown author"}</span></span><span>Published: {formatDate(post.publishedAt)}</span><span>{readingTime} min read</span></div>
           {post.mainImage?.asset?._ref && <img src={urlFor(post.mainImage).width(1440).height(720).fit("crop").auto("format").url()} alt={post.title} className="mt-8 h-56 w-full rounded-xl object-cover sm:h-80 lg:h-[28rem]" />}
         </header>
 
-        <div className="mx-auto mt-10 grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,760px)_220px]">
+        <div className="mx-auto mt-9 grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,780px)_240px] lg:gap-12">
           <article className="min-w-0"><div className="prose-invert max-w-none"><PortableText value={post.body} components={portableTextComponents} /></div></article>
           <aside className="hidden lg:block"><div className="sticky top-8 space-y-8 rounded-lg border border-gray-700/70 bg-neutral-800/70 p-5"><div>{headings.length > 0 && <><h2 className="text-sm font-semibold uppercase tracking-wider text-gray-300">In this article</h2><nav className="mt-3 space-y-2">{headings.map((heading) => <a key={heading.id} href={`#${heading.id}`} className={`block text-sm text-gray-400 hover:text-cyan-300 ${heading.level === "h3" ? "pl-3" : ""}`}>{heading.title}</a>)}</nav></>}</div><ShareLinks links={shareLinks} copied={copied} onCopy={copyLink} /></div></aside>
         </div>
@@ -189,7 +189,7 @@ export default function BlogPost() {
         <section className="mx-auto mt-14 max-w-4xl border-t border-gray-700/70 pt-8"><h2 className="text-2xl font-semibold text-white">Comments</h2>{comments.length === 0 ? <p className="mt-3 text-gray-400">No comments yet. Be the first to share your thoughts.</p> : <div className="mt-5 space-y-3">{comments.map((comment) => <div key={comment._key} className="rounded-lg border border-gray-700 bg-neutral-800 p-4"><p className="font-medium text-white">{comment.name}</p>{comment.createdAt && <p className="mt-1 text-xs text-gray-500">{formatDate(comment.createdAt)}</p>}<p className="mt-2 text-gray-300">{comment.message}</p></div>)}</div>}<div className="mt-7">{submitted ? <p className="text-green-400">Thanks! Your comment is awaiting approval.</p> : <form onSubmit={handleSubmit} className="flex flex-col gap-3"><input type="text" placeholder="Your name" value={commentName} onChange={(event) => setCommentName(event.target.value)} className="rounded border border-gray-700 bg-neutral-800 p-3 text-white" required /><textarea placeholder="Your comment" value={commentMessage} onChange={(event) => setCommentMessage(event.target.value)} className="min-h-28 rounded border border-gray-700 bg-neutral-800 p-3 text-white" required /><button type="submit" className="w-fit rounded bg-cyan-700 px-5 py-2.5 font-medium text-white transition hover:bg-cyan-600">Submit Comment</button></form>}</div></section>
       </main>
       {showBackToTop && <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="fixed bottom-24 right-5 z-30 rounded-full border border-cyan-700 bg-neutral-800 p-3 text-cyan-200 shadow-lg transition hover:bg-neutral-700" aria-label="Back to top"><FaChevronUp /></button>}
-      <div className="container mx-auto w-full px-8"><Contact /></div>
+      <div className="mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8"><Contact /></div>
       <WhatsappButton />
     </div>
   );
