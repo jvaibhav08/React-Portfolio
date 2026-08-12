@@ -7,6 +7,7 @@ import Blog from './pages/blog.jsx';       // Capitalized for consistency
 import BlogPost from './pages/BlogPost.jsx'; // ✅ Import BlogPost component
 
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import NotFound from './pages/NotFound.jsx';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -14,6 +15,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/blog" element={<Blog />} />
+        <Route path="*" element={<NotFound />} />
         <Route path="/blog/:slug" element={<BlogPost />} /> {/* ✅ New dynamic route */}
       </Routes>
     </BrowserRouter>

@@ -32,6 +32,29 @@ export default defineType({
       options: {
         hotspot: true,
       },
+      fields: [
+        defineField({
+          name: 'alt',
+          title: 'Alternative text',
+          type: 'string',
+          description: 'Describe the image for search engines and screen readers.',
+        }),
+      ],
+    }),
+    defineField({
+      name: 'seoTitle',
+      title: 'SEO title',
+      type: 'string',
+      description: 'Optional. Falls back to the post title when empty.',
+      validation: (Rule) => Rule.max(60).warning('Keep SEO titles under 60 characters when possible.'),
+    }),
+    defineField({
+      name: 'seoDescription',
+      title: 'SEO/meta description',
+      type: 'text',
+      rows: 3,
+      description: 'Optional. Falls back to an excerpt generated from the post body when empty.',
+      validation: (Rule) => Rule.max(160).warning('Keep meta descriptions under 160 characters when possible.'),
     }),
     defineField({
       name: 'categories',
@@ -43,6 +66,12 @@ export default defineType({
       name: 'publishedAt',
       title: 'Published at',
       type: 'datetime',
+    }),
+    defineField({
+      name: 'modifiedAt',
+      title: 'Updated/modified date',
+      type: 'datetime',
+      description: 'Optional. Use when the article has been materially updated.',
     }),
     defineField({
       name: 'body',

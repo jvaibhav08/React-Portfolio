@@ -5,10 +5,19 @@ import imageUrlBuilder from "@sanity/image-url";
 import Navbar from "../components/Navbar";
 import Contact from "../components/Contact";
 import WhatsappButton from "../components/WhatsappButton";
+import Seo from "../components/Seo";
 
 const imageBuilder = imageUrlBuilder(client);
 const cardImageUrl = (image) =>
   imageBuilder.image(image).width(800).height(450).fit("crop").auto("format").url();
+const blogStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "Home", item: "https://vishwasjha.com/" },
+    { "@type": "ListItem", position: 2, name: "Blog", item: "https://vishwasjha.com/blog" },
+  ],
+};
 
 export default function Blog() {
   const [posts, setPosts] = useState([]);
@@ -17,9 +26,10 @@ export default function Blog() {
   useEffect(() => {
     client
       .fetch(
-        `*[_type == "post"] | order(publishedAt desc){
+        `*[_type == "post" && defined(slug.current) && defined(publishedAt) && !(_id in path("drafts.**"))] | order(publishedAt desc){
           _id,
           title,
+          seoTitle,
           slug,
           publishedAt,
           mainImage,
@@ -48,6 +58,12 @@ export default function Blog() {
 
   return (
     <div className="flex min-h-screen flex-col bg-neutral-900 text-neutral-200">
+      <Seo
+        title="Blog | Vishwas Jha"
+        description="Read articles by Vishwas Jha on content writing, SEO, business, technology, and creative storytelling."
+        path="/blog"
+        structuredData={blogStructuredData}
+      />
       <div className="mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8"><Navbar /></div>
       <main className="mx-auto w-full max-w-[84rem] flex-grow px-5 pb-12 sm:px-6 sm:pb-14 lg:px-8">
         <h1 className="mb-6 text-3xl font-bold tracking-tight text-white sm:mb-7 sm:text-4xl">
@@ -94,9 +110,12 @@ export default function Blog() {
                 {post.mainImage?.asset?._ref && (
                   <img
                     src={cardImageUrl(post.mainImage)}
-                    alt={post.title}
+                    alt={post.mainImage?.alt || post.seoTitle || post.title || "Blog post image"}
+                    width="800"
+                    height="450"
                     className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                     loading="lazy"
+                    decoding="async"
                   />
                 )}
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-neutral-950/45 via-transparent to-cyan-950/10" />

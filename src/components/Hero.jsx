@@ -44,7 +44,12 @@ const Hero = () => {
                     <motion.img initial={{ x: 100, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
                         transition={{ duration: 1, delay: 1.2 }}
-                        src={profilePic} alt="Vishwas Jha" />
+                        src={profilePic}
+                        alt="Portrait of Vishwas Jha, content writer"
+                        width="668"
+                        height="668"
+                        fetchPriority="high"
+                        decoding="async" />
                 </div>
             </div>
         </div>

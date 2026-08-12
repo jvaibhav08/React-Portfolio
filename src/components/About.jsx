@@ -13,7 +13,7 @@ const About = () => {
                 transition={{ duration: 0.5 }}
                 className="w-full lg:w-1/2 lg:pr-8">
                 <div className="flex items-center justify-center">
-                    <img className="rounded-2xl" src={aboutImg} alt="about" />
+                    <img className="rounded-2xl" src={aboutImg} alt="Writing workspace" width="1920" height="1442" loading="lazy" decoding="async" />
                 </div>
             </motion.div>
             <motion.div

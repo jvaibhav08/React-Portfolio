@@ -23,9 +23,9 @@ const Experience = () => {
                         initial={{ opacity: 0, x: 100 }}
                         transition={{ duration: 1 }}
                         className="w-full max-w-xl lg:w-3/4">
-                        <h6 className="mb-2 text-lg font-semibold">
+                        <h3 className="mb-2 text-lg font-semibold">
                             {experience.role} - <span className="text-base text-purple-100">{experience.company}</span>
-                        </h6>
+                        </h3>
                         <p className="mb-4 text-[17px] leading-7 text-neutral-400">{experience.description}</p>
                         {experience.technologies.map((tech, index) => (
                             <span key={index} className="mr-2 mt-2 inline-block rounded bg-neutral-900 px-2 py-1 text-sm font-medium text-purple-200">{tech}</span>

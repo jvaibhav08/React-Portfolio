@@ -32,7 +32,7 @@ const Navbar = () => {
     <nav className="mb-10 flex items-center justify-between py-5 sm:mb-12 sm:py-6">
       {/* ✅ Logo */}
       <div className="flex flex-shrink-0 items-center">
-        <img className="mx-1 w-10 sm:w-11" src={logo} alt="logo" />
+        <img className="mx-1 w-10 sm:w-11" src={logo} alt="Vishwas Jha logo" width="216" height="158" />
       </div>
 
       {/* ✅ Menu Links (desktop/tablet large and up) */}

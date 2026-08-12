@@ -8,6 +8,8 @@ import { client } from "../sanity";
 import Navbar from "../components/Navbar";
 import Contact from "../components/Contact";
 import WhatsappButton from "../components/WhatsappButton";
+import Seo from "../components/Seo";
+import NotFound from "./NotFound";
 
 const builder = imageUrlBuilder(client);
 const urlFor = (source) => builder.image(source);
@@ -16,10 +18,21 @@ const formatDate = (date) =>
     ? new Date(date).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })
     : "Not published";
 const headingId = (block) => `section-${block._key || block.children?.map((child) => child.text).join("-")}`;
+const descriptionFor = (body, title) => {
+  const text = (body || [])
+    .filter((block) => block._type === "block")
+    .flatMap((block) => block.children || [])
+    .map((child) => child.text || "")
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return text ? `${text.slice(0, 157).trimEnd()}${text.length > 157 ? "..." : ""}` : `Read ${title} by Vishwas Jha.`;
+};
 
 export default function BlogPost() {
   const { slug } = useParams();
   const [post, setPost] = useState(null);
+  const [loadState, setLoadState] = useState("loading");
   const [relatedPosts, setRelatedPosts] = useState([]);
   const [adjacentPosts, setAdjacentPosts] = useState({ previous: null, next: null });
   const [comments, setComments] = useState([]);
@@ -33,9 +46,12 @@ export default function BlogPost() {
 
   useEffect(() => {
     const fetchPost = async () => {
+      setLoadState("loading");
+      setPost(null);
+      try {
       const data = await client.fetch(
-        `*[_type == "post" && slug.current == $slug][0]{
-          _id, title, slug, publishedAt, mainImage, body, comments,
+        `*[_type == "post" && slug.current == $slug && defined(slug.current) && defined(publishedAt) && !(_id in path("drafts.**"))][0]{
+          _id, _updatedAt, title, seoTitle, seoDescription, slug, publishedAt, modifiedAt, mainImage, body, comments,
           author->{name, bio, image, instagram, whatsapp, twitter, linkedin},
           categories[]->{_id, title}
         }`,
@@ -44,31 +60,39 @@ export default function BlogPost() {
 
       setPost(data);
       setComments((data?.comments || []).filter((comment) => comment.approved));
-      if (!data) return;
+      if (!data) {
+        setLoadState("notFound");
+        return;
+      }
 
       const categoryIds = data.categories?.map((category) => category._id) || [];
       const [related, previous, next] = await Promise.all([
         client.fetch(
-          `*[_type == "post" && _id != $id] | order(count(categories[@._ref in $categoryIds]) desc, publishedAt desc)[0...3]{
+          `*[_type == "post" && _id != $id && defined(slug.current) && defined(publishedAt) && !(_id in path("drafts.**"))] | order(count(categories[@._ref in $categoryIds]) desc, publishedAt desc)[0...3]{
             _id, title, slug, publishedAt, mainImage, author->{name}, categories[]->{title}
           }`,
           { id: data._id, categoryIds }
         ),
         data.publishedAt
           ? client.fetch(
-              `*[_type == "post" && publishedAt < $publishedAt] | order(publishedAt desc)[0]{title, slug}`,
+              `*[_type == "post" && defined(slug.current) && defined(publishedAt) && !(_id in path("drafts.**")) && publishedAt < $publishedAt] | order(publishedAt desc)[0]{title, slug}`,
               { publishedAt: data.publishedAt }
             )
           : null,
         data.publishedAt
           ? client.fetch(
-              `*[_type == "post" && publishedAt > $publishedAt] | order(publishedAt asc)[0]{title, slug}`,
+              `*[_type == "post" && defined(slug.current) && defined(publishedAt) && !(_id in path("drafts.**")) && publishedAt > $publishedAt] | order(publishedAt asc)[0]{title, slug}`,
               { publishedAt: data.publishedAt }
             )
           : null,
       ]);
       setRelatedPosts(related || []);
       setAdjacentPosts({ previous, next });
+      setLoadState("ready");
+      } catch (error) {
+        console.error("Error loading blog post:", error);
+        setLoadState("error");
+      }
     };
 
     fetchPost();
@@ -131,8 +155,10 @@ export default function BlogPost() {
 
   const portableTextComponents = {
     block: {
+      h1: ({ children, value }) => <h2 id={headingId(value)} className="mt-10 scroll-mt-24 text-2xl font-semibold leading-tight text-white sm:text-3xl">{children}</h2>,
       h2: ({ children, value }) => <h2 id={headingId(value)} className="mt-10 scroll-mt-24 text-2xl font-semibold leading-tight text-white sm:text-3xl">{children}</h2>,
       h3: ({ children, value }) => <h3 id={headingId(value)} className="mt-8 scroll-mt-24 text-xl font-semibold text-white sm:text-2xl">{children}</h3>,
+      h4: ({ children, value }) => <h3 id={headingId(value)} className="mt-8 scroll-mt-24 text-xl font-semibold text-white sm:text-2xl">{children}</h3>,
       normal: ({ children }) => <p className="my-5 text-[17px] leading-8 text-gray-300 sm:text-lg">{children}</p>,
       blockquote: ({ children }) => <blockquote className="my-7 border-l-2 border-cyan-600 pl-5 text-[17px] italic leading-8 text-gray-300 sm:text-lg">{children}</blockquote>,
     },
@@ -146,14 +172,55 @@ export default function BlogPost() {
     types: {
       image: ({ value }) => {
         if (!value?.asset?._ref) return null;
-        return <figure className="my-8"><img src={urlFor(value).width(1200).fit("max").auto("format").url()} alt={value.alt || "Article image"} className="w-full rounded-lg object-cover" loading="lazy" />{(value.heading || value.caption) && <figcaption className="mt-2 text-sm text-gray-400">{value.heading || value.caption}</figcaption>}</figure>;
+        return <figure className="my-8"><img src={urlFor(value).width(1200).fit("max").auto("format").url()} alt={value.alt || post?.title || "Article image"} className="w-full rounded-lg object-cover" loading="lazy" />{(value.heading || value.caption) && <figcaption className="mt-2 text-sm text-gray-400">{value.heading || value.caption}</figcaption>}</figure>;
       },
     },
   };
 
-  if (!post) return <div className="p-10 text-center text-white">Loading...</div>;
+  if (loadState === "loading") return <div className="p-10 text-center text-white">Loading...</div>;
+  if (loadState === "notFound") return <NotFound title="Blog post not found" message="This blog post does not exist or may have been removed." />;
+  if (loadState === "error") return <NotFound title="Unable to load this blog post" message="Please try again shortly or return to the blog." />;
 
   const categories = post.categories || [];
+  const seoTitle = post.seoTitle || post.title;
+  const seoDescription = post.seoDescription || descriptionFor(post.body, post.title);
+  const modifiedTime = post.modifiedAt || post._updatedAt;
+  const postPath = `/blog/${encodeURIComponent(post.slug.current)}`;
+  const postImage = post.mainImage?.asset?._ref
+    ? urlFor(post.mainImage).width(1200).height(630).fit("crop").auto("format").url()
+    : undefined;
+  const authorImage = post.author?.image?.asset?._ref
+    ? urlFor(post.author.image).width(400).height(400).fit("crop").url()
+    : undefined;
+  const articleUrl = new URL(postPath, "https://vishwasjha.com").toString();
+  const articleStructuredData = [
+    {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      headline: post.title,
+      description: seoDescription,
+      image: postImage ? [postImage] : undefined,
+      datePublished: post.publishedAt,
+      dateModified: modifiedTime || post.publishedAt,
+      mainEntityOfPage: { "@type": "WebPage", "@id": articleUrl },
+      url: articleUrl,
+      author: {
+        "@type": "Person",
+        name: post.author?.name || "Vishwas Jha",
+        image: authorImage,
+      },
+      publisher: { "@type": "Person", name: "Vishwas Jha", url: "https://vishwasjha.com/" },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: "https://vishwasjha.com/" },
+        { "@type": "ListItem", position: 2, name: "Blog", item: "https://vishwasjha.com/blog" },
+        { "@type": "ListItem", position: 3, name: post.title, item: articleUrl },
+      ],
+    },
+  ];
   const shareLinks = [
     { label: "Share on WhatsApp", href: `https://wa.me/?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`, icon: <FaWhatsapp /> },
     { label: "Share on LinkedIn", href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`, icon: <FaLinkedin /> },
@@ -162,6 +229,17 @@ export default function BlogPost() {
 
   return (
     <div className="flex min-h-screen flex-col bg-neutral-900 text-neutral-200">
+      <Seo
+        title={`${seoTitle} | Vishwas Jha`}
+        description={seoDescription}
+        path={postPath}
+        image={postImage}
+        type="article"
+        publishedTime={post.publishedAt}
+        modifiedTime={modifiedTime}
+        author={post.author?.name}
+        structuredData={articleStructuredData}
+      />
       <div className="fixed left-0 top-0 z-50 h-0.5 w-full bg-neutral-800" aria-hidden="true"><div className="h-full bg-cyan-500 transition-[width] duration-100" style={{ width: `${progress}%` }} /></div>
       <div className="mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8"><Navbar /></div>
       <main className="mx-auto w-full max-w-[84rem] flex-grow px-5 pb-14 sm:px-6 sm:pb-16 lg:px-8">
@@ -169,7 +247,7 @@ export default function BlogPost() {
           <div className="mb-5 flex flex-wrap items-center gap-2 text-[15px] text-gray-400 sm:text-base"><Link to="/blog" className="hover:text-cyan-300">Blog</Link><span>/</span>{categories.map((category) => <span key={category._id} className="rounded-full bg-cyan-950/60 px-2 py-0.5 text-cyan-200">{category.title}</span>)}</div>
           <h1 className="max-w-5xl text-3xl font-bold leading-tight text-white sm:text-5xl">{post.title}</h1>
           <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-[15px] text-gray-400 sm:text-base"><span>Written by: <span className="text-gray-200">{post.author?.name || "Unknown author"}</span></span><span>Published: {formatDate(post.publishedAt)}</span><span>{readingTime} min read</span></div>
-          {post.mainImage?.asset?._ref && <img src={urlFor(post.mainImage).width(1440).height(720).fit("crop").auto("format").url()} alt={post.title} className="mt-8 h-56 w-full rounded-xl object-cover sm:h-80 lg:h-[28rem]" />}
+          {post.mainImage?.asset?._ref && <img src={urlFor(post.mainImage).width(1440).height(720).fit("crop").auto("format").url()} alt={post.mainImage.alt || post.seoTitle || post.title || "Article image"} width="1440" height="720" className="mt-8 h-56 w-full rounded-xl object-cover sm:h-80 lg:h-[28rem]" fetchPriority="high" decoding="async" />}
         </header>
 
         <div className="mx-auto mt-9 grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,780px)_240px] lg:gap-12">
@@ -180,7 +258,7 @@ export default function BlogPost() {
         {headings.length > 0 && <section className="mx-auto mt-8 max-w-4xl rounded-lg border border-gray-700/70 bg-neutral-800/70 p-4 lg:hidden"><button type="button" onClick={() => setTocOpen((open) => !open)} className="flex w-full items-center justify-between text-left text-sm font-semibold text-white">In this article {tocOpen ? <FaChevronUp /> : <FaChevronDown />}</button>{tocOpen && <nav className="mt-4 space-y-2">{headings.map((heading) => <a key={heading.id} href={`#${heading.id}`} onClick={() => setTocOpen(false)} className={`block text-sm text-gray-400 hover:text-cyan-300 ${heading.level === "h3" ? "pl-3" : ""}`}>{heading.title}</a>)}</nav>}</section>}
 
         <section className="mx-auto mt-10 max-w-4xl lg:hidden"><ShareLinks links={shareLinks} copied={copied} onCopy={copyLink} /></section>
-        {post.author && <section className="mx-auto mt-12 max-w-4xl border-y border-gray-700/70 py-7"><div className="flex flex-col gap-4 sm:flex-row sm:items-start">{post.author.image?.asset?._ref && <img src={urlFor(post.author.image).width(160).height(160).fit("crop").url()} alt={post.author.name} className="h-16 w-16 rounded-full object-cover" />}<div><p className="text-sm text-gray-400">Written by</p><h2 className="text-xl font-semibold text-white">{post.author.name}</h2>{post.author.bio && <div className="mt-2 text-sm leading-6 text-gray-400"><PortableText value={post.author.bio} /></div>}<AuthorSocialLinks author={post.author} /></div></div></section>}
+        {post.author && <section className="mx-auto mt-12 max-w-4xl border-y border-gray-700/70 py-7"><div className="flex flex-col gap-4 sm:flex-row sm:items-start">{post.author.image?.asset?._ref && <img src={urlFor(post.author.image).width(160).height(160).fit("crop").url()} alt={`Portrait of ${post.author.name || "the author"}`} width="160" height="160" className="h-16 w-16 rounded-full object-cover" loading="lazy" decoding="async" />}<div><p className="text-sm text-gray-400">Written by</p><h2 className="text-xl font-semibold text-white">{post.author.name}</h2>{post.author.bio && <div className="mt-2 text-sm leading-6 text-gray-400"><PortableText value={post.author.bio} /></div>}<AuthorSocialLinks author={post.author} /></div></div></section>}
 
         {(adjacentPosts.previous || adjacentPosts.next) && <nav className="mx-auto mt-10 grid max-w-4xl gap-4 border-b border-gray-700/70 pb-10 sm:grid-cols-2">{adjacentPosts.previous ? <ArticleNav post={adjacentPosts.previous} direction="previous" /> : <div />}{adjacentPosts.next && <ArticleNav post={adjacentPosts.next} direction="next" />}</nav>}
 
@@ -210,5 +288,5 @@ function ArticleNav({ post, direction }) {
 }
 
 function RelatedCard({ post }) {
-  return <Link to={`/blog/${post.slug.current}`} className="group overflow-hidden rounded-lg border border-gray-700/80 bg-neutral-800 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-700"><div className="h-44 overflow-hidden bg-neutral-900">{post.mainImage?.asset?._ref && <img src={urlFor(post.mainImage).width(700).height(400).fit("crop").auto("format").url()} alt={post.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />}</div><div className="p-4">{post.categories?.[0]?.title && <p className="text-xs text-cyan-300">{post.categories[0].title}</p>}<h3 className="mt-2 line-clamp-2 font-semibold text-white">{post.title}</h3><p className="mt-3 text-sm text-gray-400">Written by: {post.author?.name || "Unknown author"}</p><p className="text-sm text-gray-400">Published: {formatDate(post.publishedAt)}</p></div></Link>;
+  return <Link to={`/blog/${post.slug.current}`} className="group overflow-hidden rounded-lg border border-gray-700/80 bg-neutral-800 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-700"><div className="h-44 overflow-hidden bg-neutral-900">{post.mainImage?.asset?._ref && <img src={urlFor(post.mainImage).width(700).height(400).fit("crop").auto("format").url()} alt={post.mainImage.alt || post.title || "Related blog post image"} width="700" height="400" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" decoding="async" />}</div><div className="p-4">{post.categories?.[0]?.title && <p className="text-xs text-cyan-300">{post.categories[0].title}</p>}<h3 className="mt-2 line-clamp-2 font-semibold text-white">{post.title}</h3><p className="mt-3 text-sm text-gray-400">Written by: {post.author?.name || "Unknown author"}</p><p className="text-sm text-gray-400">Published: {formatDate(post.publishedAt)}</p></div></Link>;
 }
