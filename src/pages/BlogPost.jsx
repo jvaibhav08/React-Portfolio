@@ -18,6 +18,11 @@ const formatDate = (date) =>
     ? new Date(date).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })
     : "Not published";
 const headingId = (block) => `section-${block._key || block.children?.map((child) => child.text).join("-")}`;
+const tableCellText = (value) =>
+  (value || [])
+    .flatMap((block) => block.children || [])
+    .map((child) => child.text || "")
+    .join("");
 const descriptionFor = (body, title) => {
   const text = (body || [])
     .filter((block) => block._type === "block")
@@ -168,8 +173,31 @@ export default function BlogPost() {
     },
     marks: {
       link: ({ children, value }) => <a href={value?.href} className="text-cyan-300 underline underline-offset-4 hover:text-cyan-200">{children}</a>,
+      underline: ({ children }) => <u>{children}</u>,
+      "strike-through": ({ children }) => <s>{children}</s>,
     },
     types: {
+      table: ({ value }) => {
+        const rows = value?.rows || [];
+        const headerRows = Math.min(Math.max(value?.headerRows || 0, 0), rows.length);
+        const renderRow = (row, rowIndex, isHeader) => (
+          <tr key={row._key || rowIndex} className="border-b border-gray-700/80 last:border-0">
+            {(row.cells || []).map((cell, cellIndex) => {
+              const Cell = isHeader ? "th" : "td";
+              return <Cell key={cell._key || cellIndex} scope={isHeader ? "col" : undefined} className={isHeader ? "bg-neutral-800 px-4 py-3 text-left font-semibold text-white" : "px-4 py-3 align-top text-gray-300"}>{tableCellText(cell.value)}</Cell>;
+            })}
+          </tr>
+        );
+
+        if (rows.length === 0) return null;
+
+        return <div className="my-8 w-full overflow-x-auto rounded-lg border border-gray-700/80"><table className="w-full min-w-max border-collapse text-left text-[15px] leading-6 sm:text-base">{headerRows > 0 && <thead>{rows.slice(0, headerRows).map((row, index) => renderRow(row, index, true))}</thead>}<tbody>{rows.slice(headerRows).map((row, index) => renderRow(row, headerRows + index, false))}</tbody></table></div>;
+      },
+      code: ({ value }) => {
+        if (!value?.code) return null;
+        return <figure className="my-8 overflow-x-auto rounded-lg border border-gray-700/80 bg-neutral-950"><figcaption className="border-b border-gray-700/80 px-4 py-2 text-xs text-gray-400">{value.filename || value.language || "Code"}</figcaption><pre className="p-4 text-sm leading-6 text-gray-200"><code className={value.language ? `language-${value.language}` : undefined}>{value.code}</code></pre></figure>;
+      },
+      divider: ({ value }) => <hr className={value?.style === "emphasized" ? "my-10 border-0 border-t-2 border-cyan-700/80" : "my-10 border-0 border-t border-gray-700/80"} />,
       image: ({ value }) => {
         if (!value?.asset?._ref) return null;
         return <figure className="my-8"><img src={urlFor(value).width(1200).fit("max").auto("format").url()} alt={value.alt || post?.title || "Article image"} className="w-full rounded-lg object-cover" loading="lazy" />{(value.heading || value.caption) && <figcaption className="mt-2 text-sm text-gray-400">{value.heading || value.caption}</figcaption>}</figure>;
