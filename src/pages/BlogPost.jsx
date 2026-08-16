@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PortableText } from "@portabletext/react";
 import imageUrlBuilder from "@sanity/image-url";
@@ -33,6 +33,16 @@ const descriptionFor = (body, title) => {
     .trim();
   return text ? `${text.slice(0, 157).trimEnd()}${text.length > 157 ? "..." : ""}` : `Read ${title} by Vishwas Jha.`;
 };
+const portableTextToSpeech = (body) =>
+  (body || [])
+    .flatMap((block) => {
+      if (block._type === "block") return [(block.children || []).map((child) => child.text || "").join("")];
+      if (block._type === "table") return (block.rows || []).flatMap((row) => (row.cells || []).map((cell) => tableCellText(cell.value)));
+      return [];
+    })
+    .join(". ")
+    .replace(/\s+/g, " ")
+    .trim();
 
 export default function BlogPost() {
   const { slug } = useParams();
@@ -279,7 +289,7 @@ export default function BlogPost() {
         </header>
 
         <div className="mx-auto mt-9 grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,780px)_240px] lg:gap-12">
-          <article className="min-w-0"><div className="prose-invert max-w-none"><PortableText value={post.body} components={portableTextComponents} /></div></article>
+          <article className="min-w-0"><ListenToArticle title={post.title} body={post.body} /><div className="prose-invert max-w-none"><PortableText value={post.body} components={portableTextComponents} /></div></article>
           <aside className="hidden lg:block"><div className="sticky top-8 space-y-8 rounded-lg border border-gray-700/70 bg-neutral-800/70 p-5"><div>{headings.length > 0 && <><h2 className="text-sm font-semibold uppercase tracking-wider text-gray-300">In this article</h2><nav className="mt-3 space-y-2">{headings.map((heading) => <a key={heading.id} href={`#${heading.id}`} className={`block text-sm text-gray-400 hover:text-cyan-300 ${heading.level === "h3" ? "pl-3" : ""}`}>{heading.title}</a>)}</nav></>}</div><ShareLinks links={shareLinks} copied={copied} onCopy={copyLink} /></div></aside>
         </div>
 
@@ -299,6 +309,97 @@ export default function BlogPost() {
       <WhatsappButton />
     </div>
   );
+}
+
+function ListenToArticle({ title, body }) {
+  const [isSupported, setIsSupported] = useState(null);
+  const [status, setStatus] = useState("idle");
+  const [rate, setRate] = useState(1);
+  const utteranceRef = useRef(null);
+  const utteranceStartRef = useRef(0);
+  const speechPositionRef = useRef(0);
+  const speechText = useMemo(() => [title, portableTextToSpeech(body)].filter(Boolean).join(". "), [title, body]);
+
+  const stop = () => {
+    if (typeof window !== "undefined") window.speechSynthesis?.cancel();
+    utteranceRef.current = null;
+    utteranceStartRef.current = 0;
+    speechPositionRef.current = 0;
+    setStatus("idle");
+  };
+
+  useEffect(() => {
+    const supported = typeof window !== "undefined" && "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
+    setIsSupported(supported);
+  }, []);
+
+  useEffect(() => {
+    setStatus("idle");
+    utteranceStartRef.current = 0;
+    speechPositionRef.current = 0;
+    return () => {
+      window.speechSynthesis?.cancel();
+      utteranceRef.current = null;
+    };
+  }, [speechText]);
+
+  const speakFrom = (startAt, nextRate, startPaused = false) => {
+    if (!isSupported || !speechText) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(speechText.slice(startAt));
+    utterance.rate = nextRate;
+    utteranceStartRef.current = startAt;
+    speechPositionRef.current = startAt;
+    utterance.onboundary = (event) => {
+      if (utteranceRef.current === utterance) speechPositionRef.current = utteranceStartRef.current + event.charIndex;
+    };
+    utterance.onend = () => {
+      if (utteranceRef.current === utterance) {
+        utteranceRef.current = null;
+        utteranceStartRef.current = 0;
+        speechPositionRef.current = 0;
+        setStatus("idle");
+      }
+    };
+    utterance.onerror = (event) => {
+      if (utteranceRef.current === utterance && event.error !== "canceled" && event.error !== "interrupted") {
+        utteranceRef.current = null;
+        setStatus("error");
+      }
+    };
+    utteranceRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+    if (startPaused) window.speechSynthesis.pause();
+    setStatus(startPaused ? "paused" : "playing");
+  };
+
+  const play = () => {
+    speakFrom(0, rate);
+  };
+
+  const changeRate = (nextRate) => {
+    setRate(nextRate);
+    if (status === "playing" || status === "paused") {
+      speakFrom(speechPositionRef.current, nextRate, status === "paused");
+    }
+  };
+
+  const pauseOrResume = () => {
+    if (!isSupported) return;
+    if (status === "playing") {
+      window.speechSynthesis.pause();
+      setStatus("paused");
+    } else if (status === "paused") {
+      window.speechSynthesis.resume();
+      setStatus("playing");
+    }
+  };
+
+  if (isSupported === false) return <p className="mb-6 rounded-lg border border-gray-700/70 bg-neutral-800/70 px-4 py-3 text-sm text-gray-400">Text-to-speech is unavailable in this browser.</p>;
+
+  const isActive = status === "playing" || status === "paused";
+  const statusText = status === "playing" ? "Listening" : status === "paused" ? "Paused" : status === "error" ? "Speech could not start. Please try again." : "Ready to listen";
+  return <section className="mb-7 rounded-lg border border-gray-700/70 bg-neutral-800/70 p-4" aria-label="Listen to this article"><div className="flex flex-wrap items-center gap-3"><span className="font-medium text-white">Listen to this article</span><span className="text-sm text-cyan-300" role="status" aria-live="polite">{statusText}</span></div><div className="mt-3 flex flex-wrap items-center gap-2"><button type="button" onClick={play} disabled={!isSupported || !speechText} className="rounded bg-cyan-700 px-3 py-2 text-sm font-medium text-white transition hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-50">Play</button><button type="button" onClick={pauseOrResume} disabled={!isSupported || !isActive} className="rounded border border-gray-600 px-3 py-2 text-sm font-medium text-gray-200 transition hover:border-cyan-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-50">{status === "paused" ? "Resume" : "Pause"}</button><button type="button" onClick={stop} disabled={!isSupported || !isActive} className="rounded border border-gray-600 px-3 py-2 text-sm font-medium text-gray-200 transition hover:border-cyan-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-50">Stop</button><span className="ml-1 text-sm text-gray-400">Speed</span>{[1, 1.25, 1.5, 2].map((option) => <button key={option} type="button" onClick={() => changeRate(option)} aria-pressed={rate === option} className={`rounded px-2.5 py-2 text-sm transition ${rate === option ? "bg-cyan-800 text-white" : "border border-gray-600 text-gray-300 hover:border-cyan-600"}`}>{option}x</button>)}</div>{isActive && <p className="mt-3 text-xs text-gray-400">Speed changes apply immediately.</p>}</section>;
 }
 
 function ShareLinks({ links, copied, onCopy }) {
