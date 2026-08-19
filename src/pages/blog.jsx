@@ -8,8 +8,12 @@ import WhatsappButton from "../components/WhatsappButton";
 import Seo from "../components/Seo";
 
 const imageBuilder = imageUrlBuilder(client);
-const cardImageUrl = (image) =>
-  imageBuilder.image(image).width(800).height(450).fit("crop").auto("format").url();
+const cardImageUrl = (image, width) =>
+  imageBuilder.image(image).width(width).fit("max").auto("format").quality(80).url();
+const cardImageSrcSet = (image) =>
+  [480, 640, 800, 1024]
+    .map((width) => `${cardImageUrl(image, width)} ${width}w`)
+    .join(", ");
 const blogStructuredData = {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
@@ -106,14 +110,14 @@ export default function Blog() {
               key={post._id}
               className="group flex min-w-0 flex-col overflow-hidden rounded-lg border border-gray-700/80 bg-neutral-800 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:border-cyan-700/70 hover:shadow-lg hover:shadow-black/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
             >
-              <div className="relative h-48 overflow-hidden bg-neutral-900 sm:h-52 lg:h-56">
+              <div className="relative aspect-video overflow-hidden bg-neutral-900">
                 {post.mainImage?.asset?._ref && (
                   <img
-                    src={cardImageUrl(post.mainImage)}
+                    src={cardImageUrl(post.mainImage, 800)}
+                    srcSet={cardImageSrcSet(post.mainImage)}
+                    sizes="(min-width: 1024px) 28rem, (min-width: 640px) 50vw, 100vw"
                     alt={post.mainImage?.alt || post.seoTitle || post.title || "Blog post image"}
-                    width="800"
-                    height="450"
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    className="h-full w-full object-contain transition duration-500"
                     loading="lazy"
                     decoding="async"
                   />

@@ -13,6 +13,10 @@ import NotFound from "./NotFound";
 
 const builder = imageUrlBuilder(client);
 const urlFor = (source) => builder.image(source);
+const optimizedImageUrl = (source, width) =>
+  urlFor(source).width(width).fit("max").auto("format").quality(80).url();
+const optimizedImageSrcSet = (source, widths) =>
+  widths.map((width) => `${optimizedImageUrl(source, width)} ${width}w`).join(", ");
 const formatDate = (date) =>
   date
     ? new Date(date).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })
@@ -210,7 +214,7 @@ export default function BlogPost() {
       divider: ({ value }) => <hr className={value?.style === "emphasized" ? "my-10 border-0 border-t-2 border-cyan-700/80" : "my-10 border-0 border-t border-gray-700/80"} />,
       image: ({ value }) => {
         if (!value?.asset?._ref) return null;
-        return <figure className="my-8"><img src={urlFor(value).width(1200).fit("max").auto("format").url()} alt={value.alt || post?.title || "Article image"} className="w-full rounded-lg object-cover" loading="lazy" />{(value.heading || value.caption) && <figcaption className="mt-2 text-sm text-gray-400">{value.heading || value.caption}</figcaption>}</figure>;
+        return <figure className="my-8"><img src={optimizedImageUrl(value, 1200)} srcSet={optimizedImageSrcSet(value, [640, 960, 1200, 1600])} sizes="(min-width: 1024px) 780px, 100vw" alt={value.alt || post?.title || "Article image"} className="h-auto w-full rounded-lg" loading="lazy" decoding="async" />{(value.heading || value.caption) && <figcaption className="mt-2 text-sm text-gray-400">{value.heading || value.caption}</figcaption>}</figure>;
       },
     },
   };
@@ -285,7 +289,7 @@ export default function BlogPost() {
           <div className="mb-5 flex flex-wrap items-center gap-2 text-[15px] text-gray-400 sm:text-base"><Link to="/blog" className="hover:text-cyan-300">Blog</Link><span>/</span>{categories.map((category) => <span key={category._id} className="rounded-full bg-cyan-950/60 px-2 py-0.5 text-cyan-200">{category.title}</span>)}</div>
           <h1 className="max-w-5xl text-3xl font-bold leading-tight text-white sm:text-5xl">{post.title}</h1>
           <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-[15px] text-gray-400 sm:text-base"><span>Written by: <span className="text-gray-200">{post.author?.name || "Unknown author"}</span></span><span>Published: {formatDate(post.publishedAt)}</span><span>{readingTime} min read</span></div>
-          {post.mainImage?.asset?._ref && <img src={urlFor(post.mainImage).width(1440).height(720).fit("crop").auto("format").url()} alt={post.mainImage.alt || post.seoTitle || post.title || "Article image"} width="1440" height="720" className="mt-8 h-56 w-full rounded-xl object-cover sm:h-80 lg:h-[28rem]" fetchPriority="high" decoding="async" />}
+          {post.mainImage?.asset?._ref && <img src={optimizedImageUrl(post.mainImage, 1440)} srcSet={optimizedImageSrcSet(post.mainImage, [640, 960, 1200, 1440, 1920])} sizes="(min-width: 1280px) 1152px, (min-width: 640px) calc(100vw - 3rem), 100vw" alt={post.mainImage.alt || post.seoTitle || post.title || "Article image"} className="mt-8 h-auto w-full rounded-xl" fetchPriority="high" decoding="async" />}
         </header>
 
         <div className="mx-auto mt-9 grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,780px)_240px] lg:gap-12">
@@ -417,5 +421,5 @@ function ArticleNav({ post, direction }) {
 }
 
 function RelatedCard({ post }) {
-  return <Link to={`/blog/${post.slug.current}`} className="group overflow-hidden rounded-lg border border-gray-700/80 bg-neutral-800 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-700"><div className="h-44 overflow-hidden bg-neutral-900">{post.mainImage?.asset?._ref && <img src={urlFor(post.mainImage).width(700).height(400).fit("crop").auto("format").url()} alt={post.mainImage.alt || post.title || "Related blog post image"} width="700" height="400" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" decoding="async" />}</div><div className="p-4">{post.categories?.[0]?.title && <p className="text-xs text-cyan-300">{post.categories[0].title}</p>}<h3 className="mt-2 line-clamp-2 font-semibold text-white">{post.title}</h3><p className="mt-3 text-sm text-gray-400">Written by: {post.author?.name || "Unknown author"}</p><p className="text-sm text-gray-400">Published: {formatDate(post.publishedAt)}</p></div></Link>;
+  return <Link to={`/blog/${post.slug.current}`} className="group overflow-hidden rounded-lg border border-gray-700/80 bg-neutral-800 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-700"><div className="bg-neutral-900">{post.mainImage?.asset?._ref && <img src={optimizedImageUrl(post.mainImage, 700)} srcSet={optimizedImageSrcSet(post.mainImage, [480, 640, 700, 960])} sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw" alt={post.mainImage.alt || post.title || "Related blog post image"} className="h-auto w-full transition duration-500 group-hover:scale-105" loading="lazy" decoding="async" />}</div><div className="p-4">{post.categories?.[0]?.title && <p className="text-xs text-cyan-300">{post.categories[0].title}</p>}<h3 className="mt-2 line-clamp-2 font-semibold text-white">{post.title}</h3><p className="mt-3 text-sm text-gray-400">Written by: {post.author?.name || "Unknown author"}</p><p className="text-sm text-gray-400">Published: {formatDate(post.publishedAt)}</p></div></Link>;
 }
